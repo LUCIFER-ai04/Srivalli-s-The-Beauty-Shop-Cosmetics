@@ -43,7 +43,11 @@
       try {
         var res = await SB.auth.signInWithOAuth({
           provider: "google",
-          options: { redirectTo: window.location.origin + "/admin.html" }
+          options: {
+            redirectTo: window.location.hostname === 'localhost'
+              ? window.location.origin + '/admin.html'
+              : 'https://srivallis.in/admin.html'
+          }
         });
         if (res && res.error) throw res.error;
       } catch(e) {
@@ -53,6 +57,46 @@
   }
 
   async function gate() {
+    // ── Handle OAuth callback from Google ─────────────────────────────
+    // After Google redirects back, the URL contains #access_token=... or ?code=...
+    // Supabase needs a moment to process it before localStorage has the session.
+    var isOAuthCallback =
+      window.location.hash.indexOf('access_token') > -1 ||
+      window.location.search.indexOf('code=') > -1;
+
+    if (isOAuthCallback) {
+      // Show "Completing sign-in..." while Supabase processes the token
+      var gate = document.getElementById("adminGate");
+      if (gate) {
+        gate.style.display = "block";
+        gate.innerHTML =
+          '<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;">'+
+          '<div style="text-align:center;color:var(--ink-soft);">'+
+          '<div style="font-size:2rem;margin-bottom:12px;">&#128274;</div>'+
+          '<p style="font-size:.95rem;">Completing sign-in&#8230;</p>'+
+          '</div></div>';
+      }
+      // Wait for Supabase to process the hash/code and fire the SIGNED_IN event
+      await new Promise(function(resolve) {
+        var done = false;
+        var timer = setTimeout(function() { if (!done) { done=true; resolve(); } }, 6000);
+        SB.auth.onAuthStateChange(function(event) {
+          if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && !done) {
+            done = true;
+            clearTimeout(timer);
+            // Clean URL so callback params don't persist on reload
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            setTimeout(resolve, 300); // small buffer for session to settle
+          }
+        });
+      });
+      // Now re-run gate with the established session
+      return gate();
+    }
+
+    // ── Fast localStorage check (no network needed) ───────────────────
     var hasSession = false;
     try {
       for (var k in localStorage) {
@@ -69,12 +113,13 @@
 
     if (!hasSession) { showAdminLoginUI(); return false; }
 
+    // ── Verify admin role via Supabase ────────────────────────────────
     try {
       var session = await db.getSession();
       if (!session) { showAdminLoginUI(); return false; }
       var isAdmin = await db.isCurrentUserAdmin();
       if (!isAdmin) {
-        showAdminLoginUI("&#128683; This account is not authorised. Use the correct Google account.");
+        showAdminLoginUI("&#128683; This account is not authorised. Please use the correct Google account.");
         return false;
       }
       document.getElementById("adminGate").style.display = "none";
@@ -93,7 +138,8 @@
       return true;
     } catch(e) {
       var g = document.getElementById("adminGate");
-      if (g) g.innerHTML = '<div class="alert alert-warn" style="max-width:480px;margin:60px auto;">Connection error. <a href="javascript:location.reload()">Reload</a>.</div>';
+      if (g) g.innerHTML = '<div class="alert alert-warn" style="max-width:480px;margin:60px auto;">' +
+        'Connection error. <a href="javascript:location.reload()">Reload</a>.</div>';
       return false;
     }
   }
