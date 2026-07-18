@@ -540,18 +540,31 @@
       btn.addEventListener("click", async function () {
         var p = allProducts.find ? allProducts.find(function (x) { return x.id === btn.dataset.id; })
           : (function () { for (var i = 0; i < allProducts.length; i++) { if (allProducts[i].id === btn.dataset.id) return allProducts[i]; } })();
-        var name = p ? String(p.name||"").replace(/^[^a-zA-Z]+/,"").slice(0,40) : btn.dataset.id;
-        if (!confirm("Hide \"" + name + "\" from the shop?\n\nVisitors will no longer see this product. You can restore it by editing the product and saving again.")) return;
+        var rawName = p ? String(p.name||"").replace(/^[^a-zA-Z]+/,"").slice(0,50) : btn.dataset.id;
+
+        // Clear confirmation before deleting
+        if (!confirm(
+          "HIDE this product from the website?\n\n" +
+          "Product: " + rawName + "\n\n" +
+          "Once you confirm:\n" +
+          "\u2022 It will be REMOVED from the shop for all visitors\n" +
+          "\u2022 It will disappear within a few seconds (no page reload needed)\n" +
+          "\u2022 You can restore it later by contacting support\n\n" +
+          "Are you sure you want to hide this product?"
+        )) return;
+
         btn.disabled = true; btn.textContent = "Hiding\u2026";
         try {
-          // Use item_code (p.id) — not the DB uuid
           await db.adminDeleteProduct(btn.dataset.id);
-          shared.toast("\u2713 \"" + name + "\" hidden from shop");
+          shared.toast("\u2713 \"" + rawName + "\" hidden from shop. Refresh the website to confirm.");
           var row = btn.closest("tr");
-          if (row) row.style.opacity = "0.4";
-          setTimeout(function(){ if (row) row.remove(); }, 500);
+          if (row) {
+            row.style.transition = "opacity 0.5s";
+            row.style.opacity = "0.3";
+            setTimeout(function(){ if (row) row.remove(); }, 600);
+          }
         } catch(e) {
-          shared.toast("Error: " + (e.message||e));
+          shared.toast("\u26a0 Error: " + (e.message||e));
           btn.disabled = false; btn.textContent = "\uD83D\uDDD1\uFE0F Delete";
         }
       });

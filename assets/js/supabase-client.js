@@ -272,24 +272,19 @@
   /* -------- ADMIN WRITE ------------------------------------------------- */
   async function adminUpsertProduct(p) { if(!connected) throw new Error('Not connected.'); var r=await client.from('products').upsert(p).select(); if(r.error) throw r.error; return r.data; }
   async function adminDeleteProduct(itemCode) {
-    // Mark as hidden (active:false) so get_modified_products() returns it
-    // and app.js filters it out of the shop. Never hard-deletes — always reversible.
+    // Insert into hidden_products table — get_modified_products() returns
+    // hidden items as active:false, which app.js filters from the shop display
     if (!connected) throw new Error('Not connected.');
-    // Try update first (product already has overrides row)
-    var upd = await client.from('products')
-      .update({ active: false, updated_at: new Date().toISOString() })
-      .eq('item_code', itemCode);
-    if (upd.error) throw upd.error;
-    // count is not reliable — also try insert if no rows were updated
-    var check = await client.from('products').select('id').eq('item_code', itemCode).single();
-    if (check.error) {
-      // No existing row — insert a hidden marker
-      var ins = await client.from('products').insert({
-        item_code: itemCode, active: false, price: 0,
-        updated_at: new Date().toISOString()
-      });
-      if (ins.error) throw ins.error;
-    }
+    var r = await client.from('hidden_products')
+      .upsert({ item_code: itemCode }, { onConflict: 'item_code' });
+    if (r.error) throw r.error;
+  }
+
+  async function adminRestoreProduct(itemCode) {
+    // Remove from hidden_products to restore a previously deleted product
+    if (!connected) throw new Error('Not connected.');
+    var r = await client.from('hidden_products').delete().eq('item_code', itemCode);
+    if (r.error) throw r.error;
   }
   async function adminUpsertService(row) { if(!connected) throw new Error('Not connected.'); var r=await client.from('services').upsert(row).select(); if(r.error) throw r.error; return r.data; }
   async function adminUpsertCourse(row) { if(!connected) throw new Error('Not connected.'); var r=await client.from('courses').upsert(row).select(); if(r.error) throw r.error; return r.data; }
@@ -350,7 +345,8 @@
     isCurrentUserAdmin: isCurrentUserAdmin,
     getMyOrders: getMyOrders,
     adminUpsertProduct: adminUpsertProduct,
-    adminDeleteProduct: adminDeleteProduct,
+    adminDeleteProduct:  adminDeleteProduct,
+    adminRestoreProduct: adminRestoreProduct,
     adminUpsertService: adminUpsertService,
     adminUpsertCourse: adminUpsertCourse,
     adminUpdateSetting: adminUpdateSetting,
