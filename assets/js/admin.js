@@ -541,14 +541,15 @@
         var p = allProducts.find ? allProducts.find(function (x) { return x.id === btn.dataset.id; })
           : (function () { for (var i = 0; i < allProducts.length; i++) { if (allProducts[i].id === btn.dataset.id) return allProducts[i]; } })();
         var name = p ? String(p.name||"").replace(/^[^a-zA-Z]+/,"").slice(0,40) : btn.dataset.id;
-        if (!confirm("Delete \"" + name + "\"?\n\nThis removes the admin price/photo override. The original product from the catalogue still exists.")) return;
-        btn.disabled = true; btn.textContent = "Deleting\u2026";
+        if (!confirm("Hide \"" + name + "\" from the shop?\n\nVisitors will no longer see this product. You can restore it by editing the product and saving again.")) return;
+        btn.disabled = true; btn.textContent = "Hiding\u2026";
         try {
+          // Use item_code (p.id) — not the DB uuid
           await db.adminDeleteProduct(btn.dataset.id);
-          shared.toast("\u2713 Deleted from admin overrides");
-          // Remove row from UI immediately
+          shared.toast("\u2713 \"" + name + "\" hidden from shop");
           var row = btn.closest("tr");
-          if (row) row.remove();
+          if (row) row.style.opacity = "0.4";
+          setTimeout(function(){ if (row) row.remove(); }, 500);
         } catch(e) {
           shared.toast("Error: " + (e.message||e));
           btn.disabled = false; btn.textContent = "\uD83D\uDDD1\uFE0F Delete";
