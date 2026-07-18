@@ -514,7 +514,10 @@
         '<td style="color:var(--berry-dark);font-weight:700;">' + shared.fmtPrice(p.price) +
           (p.discount > 0 ? '<br><span style="font-size:.7rem;color:var(--success);">\u20b9' + (Math.round(p.price*(1-p.discount/100)*100)/100).toFixed(2) + ' final</span>' : '') +
         '</td>' +
-        '<td><button class="btn btn-sm btn-primary edit-product-btn" data-id="' + p.id + '">\u270f\ufe0f Edit</button></td>' +
+        '<td style="display:flex;gap:6px;padding:8px 0;">' +
+          '<button class="btn btn-sm btn-primary edit-product-btn" data-id="' + p.id + '">\u270f\ufe0f Edit</button>' +
+          '<button class="btn btn-sm del-product-btn" data-id="' + p.id + '" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;">\uD83D\uDDD1\uFE0F Delete</button>' +
+        '</td>' +
         '</tr>';
     }).join("");
 
@@ -530,6 +533,26 @@
         var p = allProducts.find ? allProducts.find(function (x) { return x.id === btn.dataset.id; })
           : (function () { for (var i = 0; i < allProducts.length; i++) { if (allProducts[i].id === btn.dataset.id) return allProducts[i]; } })();
         if (p) openProductModal(p);
+      });
+    });
+
+    wrap.querySelectorAll(".del-product-btn").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var p = allProducts.find ? allProducts.find(function (x) { return x.id === btn.dataset.id; })
+          : (function () { for (var i = 0; i < allProducts.length; i++) { if (allProducts[i].id === btn.dataset.id) return allProducts[i]; } })();
+        var name = p ? String(p.name||"").replace(/^[^a-zA-Z]+/,"").slice(0,40) : btn.dataset.id;
+        if (!confirm("Delete \"" + name + "\"?\n\nThis removes the admin price/photo override. The original product from the catalogue still exists.")) return;
+        btn.disabled = true; btn.textContent = "Deleting\u2026";
+        try {
+          await db.adminDeleteProduct(btn.dataset.id);
+          shared.toast("\u2713 Deleted from admin overrides");
+          // Remove row from UI immediately
+          var row = btn.closest("tr");
+          if (row) row.remove();
+        } catch(e) {
+          shared.toast("Error: " + (e.message||e));
+          btn.disabled = false; btn.textContent = "\uD83D\uDDD1\uFE0F Delete";
+        }
       });
     });
   }
