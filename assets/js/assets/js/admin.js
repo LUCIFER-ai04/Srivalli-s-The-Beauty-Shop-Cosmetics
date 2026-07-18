@@ -542,29 +542,27 @@
           : (function () { for (var i = 0; i < allProducts.length; i++) { if (allProducts[i].id === btn.dataset.id) return allProducts[i]; } })();
         var rawName = p ? String(p.name||"").replace(/^[^a-zA-Z]+/,"").slice(0,50) : btn.dataset.id;
 
-        // Clear confirmation before deleting
         if (!confirm(
-          "HIDE this product from the website?\n\n" +
-          "Product: " + rawName + "\n\n" +
-          "Once you confirm:\n" +
-          "\u2022 It will be REMOVED from the shop for all visitors\n" +
-          "\u2022 It will disappear within a few seconds (no page reload needed)\n" +
-          "\u2022 You can restore it later by contacting support\n\n" +
-          "Are you sure you want to hide this product?"
+          "HIDE \"" + rawName + "\" from the shop?\n\n" +
+          "This product will be removed from the shop immediately for all visitors.\n\n" +
+          "Click OK to confirm."
         )) return;
 
         btn.disabled = true; btn.textContent = "Hiding\u2026";
         try {
-          await db.adminDeleteProduct(btn.dataset.id);
-          shared.toast("\u2713 \"" + rawName + "\" hidden from shop. Refresh the website to confirm.");
+          // Call admin_hide_product RPC directly — works regardless of JS version on site
+          var res = await SB.rpc('admin_hide_product', { p_item_code: btn.dataset.id });
+          if (res.error) throw res.error;
+          if (res.data && res.data.error) throw new Error(res.data.error);
+          shared.toast("\u2713 \"" + rawName + "\" hidden from shop");
           var row = btn.closest("tr");
           if (row) {
             row.style.transition = "opacity 0.5s";
-            row.style.opacity = "0.3";
+            row.style.opacity = "0";
             setTimeout(function(){ if (row) row.remove(); }, 600);
           }
         } catch(e) {
-          shared.toast("\u26a0 Error: " + (e.message||e));
+          shared.toast("\u26a0 Error: " + (e.message||String(e)));
           btn.disabled = false; btn.textContent = "\uD83D\uDDD1\uFE0F Delete";
         }
       });
