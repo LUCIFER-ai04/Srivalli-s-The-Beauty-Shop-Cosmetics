@@ -1,0 +1,22 @@
+# Equivalent of .htaccess for Netlify hosting.
+# If you're not using Netlify, this file is simply ignored — see _headers
+# for Cloudflare Pages, or .htaccess for Apache/cPanel hosting.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+[[redirects]]
+  from = "/*"
+  to = "/404.html"
+  status = 404
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+  force = false

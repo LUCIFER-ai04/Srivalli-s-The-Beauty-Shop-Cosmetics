@@ -1,0 +1,14 @@
+{
+  "name": "Srivalli's Cosmetics — Beauty Shop, Academy & Bridal Studio",
+  "short_name": "Srivalli's",
+  "description": "Cosmetics shop, bridal makeup studio and NCFT beauty academy in Theni, Tamil Nadu.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#120D10",
+  "theme_color": "#120D10",
+  "lang": "en-IN",
+  "categories": ["shopping", "beauty", "lifestyle"],
+  "icons": [
+    { "src": "assets/img/logo-square.png", "sizes": "256x256", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

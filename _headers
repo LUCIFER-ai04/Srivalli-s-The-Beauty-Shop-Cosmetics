@@ -1,0 +1,25 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+
+/login.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/admin.html
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/assets/js/products-data.js
+  Cache-Control: public, max-age=86400
+
+/assets/js/supabase.min.js
+  Cache-Control: public, max-age=604800
+
+/assets/css/style.css
+  Cache-Control: public, max-age=86400
+
+/assets/img/*
+  Cache-Control: public, max-age=2592000
